@@ -1,0 +1,82 @@
+今天爬取了我好友武林盟主的图片站,分享一下python源代码及事件经过!
+
+
+成果分享,直接上图片,你有点宅的话就看下去哦!
+007DBw0bly1g2e53p7g0yj30u018yb2a.jpgQQ图片20190425180810.png
+
+
+
+
+1.需要更改源代码的一处为正则表达式,一般url通用表达式为: https?://.+\.jpg  视自己要爬取的目标源文件结构书写表达式
+下面一段是我抓取页面的一小部分<div>标签,我直接写的正则表达式是:data-original=''(.*?)''
+QQ图片20190425180639.jpg
+
+<div data-fancybox="gallery" class="post-item col-xs-6 col-sm-4 col-md-3 col-lg-3" data-src="http://wx1.sinaimg.cn/large/007DBw0bly1g2e54agi4zj30vv0u0hdt.jpg">
+			<img class="post-item-img lazy" src="http://mimao.club/usr/themes/photograph/src/lazy.gif" data-original="http://wx1.sinaimg.cn/large/007DBw0bly1g2e54agi4zj30vv0u0hdt.jpg" alt="漏肩毛衣 [39]" title="漏肩毛衣 [39]">
+		</div>
+
+2.第二步,这里需要新建一个index文件,把目标源代码粘贴进去,好了,大功告成!!!
+QQ图片20190425180646.png
+
+
+3.最后分享一下python源代码
+
+"""
+python爬虫小实战
+目标好友站点[咪猫俱乐部]:http://mimao.club
+author:www.xcooo.cn
+"""
+import gevent
+import re
+import urllib.request # 网络请求模块
+from gevent import monkey
+ 
+# 识别网络耗时操作
+monkey.patch_all()
+ 
+# 定义下载图片任务的方法
+def download_img(img_url,img_name):
+    try:
+        # 打开网络资源
+        response=urllib.request.urlopen(img_url)
+        with open("img/"+img_name,"wb")as file1:
+            while True:
+                img_data=response.read(1024)
+                if img_data:
+                    file1.write(img_data)
+                else:
+                    break
+    except Exception as e:
+        print("图片下载失败:",e)
+    else:
+        print("图片下载成功:",img_name)
+ 
+# 定义读取html页面的方法
+def path_img_url():
+    """index.html 替换需要爬取的目标url源文件
+    [这里需要新建文件放入源文件,然后自动读取即可]"""
+    with open("./index.html","rb")as read_file:
+        read_data=read_file.read()
+        read_data=read_data.decode("utf-8")
+        obj=re.findall(r'data-original="(.*?)"',read_data)
+        # 查找多个数据,多个数据以列表的方式返回
+        if obj:
+            return obj
+        else:
+            print("匹配失败")
+ 
+# 主函数入口
+def main():
+    img_list = []
+    result = path_img_url()
+ 
+    i=1
+    #迭代列表,取出url网址
+    for img_url in result:
+        g1=gevent.spawn(download_img,img_url,str(i)+".jpg")
+        img_list.append(g1)
+        i+=1
+    gevent.joinall(img_list)
+ 
+if __name__ == '__main__':
+    main(
